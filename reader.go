@@ -77,6 +77,8 @@ func (r *PacketReader) readVariableHeader() {
 	}
 }
 
+var errRemainingData = errors.New("mqtt: unexpected remaining data after reading packet")
+
 func (r *PacketReader) readPayload() {
 	switch r.packet.PacketType() {
 	case CONNECT:
@@ -90,7 +92,9 @@ func (r *PacketReader) readPayload() {
 	case UNSUBSCRIBE:
 		r.readUnsubscribePayload()
 	default:
-		// TODO: make sure we've read all.
+		if r.remaining() > 0 {
+			r.err = errRemainingData
+		}
 	}
 }
 
