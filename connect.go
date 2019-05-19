@@ -1,6 +1,9 @@
 package mqtt
 
-import "errors"
+import (
+	"bytes"
+	"errors"
+)
 
 // ConnectPacket is the Connect packet.
 type ConnectPacket struct {
@@ -188,10 +191,26 @@ func (f *ConnectHeaderFlags) SetWillQoS(qos QoS) {
 	}
 }
 
+var (
+	protocolMQIsdp = []byte("MQIsdp")
+	protocolMQTT   = []byte("MQTT")
+)
+
+var errUnknownProtocolName = errors.New("mqtt: unknown protocol name")
+
 func (r *PacketReader) readConnectHeader() {
 	packet := r.packet.(*ConnectPacket)
 	packet.ConnectHeader.ProtocolName, r.err = r.readBytes()
 	if r.err != nil {
+		return
+	}
+	switch {
+	case bytes.Equal(packet.ConnectHeader.ProtocolName, protocolMQIsdp):
+		packet.ConnectHeader.ProtocolName = protocolMQIsdp
+	case bytes.Equal(packet.ConnectHeader.ProtocolName, protocolMQTT):
+		packet.ConnectHeader.ProtocolName = protocolMQTT
+	default:
+		r.err = errUnknownProtocolName
 		return
 	}
 	packet.ConnectHeader.ProtocolVersion, r.err = r.readByte()
