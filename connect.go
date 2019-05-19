@@ -189,12 +189,12 @@ func (f *ConnectHeaderFlags) SetWillQoS(qos QoS) {
 }
 
 func (r *PacketReader) readConnectHeader() {
-	var header ConnectHeader
-	header.ProtocolName, r.err = r.readBytes()
+	packet := r.packet.(*ConnectPacket)
+	packet.ConnectHeader.ProtocolName, r.err = r.readBytes()
 	if r.err != nil {
 		return
 	}
-	header.ProtocolVersion, r.err = r.readByte()
+	packet.ConnectHeader.ProtocolVersion, r.err = r.readByte()
 	if r.err != nil {
 		return
 	}
@@ -203,32 +203,31 @@ func (r *PacketReader) readConnectHeader() {
 	if r.err != nil {
 		return
 	}
-	header.ConnectHeaderFlags = ConnectHeaderFlags(f)
-	if r.err = r.validateConnectHeaderFlags(header.ConnectHeaderFlags); r.err != nil {
+	packet.ConnectHeader.ConnectHeaderFlags = ConnectHeaderFlags(f)
+	if r.err = r.validateConnectHeaderFlags(packet.ConnectHeader.ConnectHeaderFlags); r.err != nil {
 		return
 	}
-	header.KeepAlive, r.err = r.readUint16()
+	packet.ConnectHeader.KeepAlive, r.err = r.readUint16()
 	if r.err != nil {
 		return
 	}
-	r.packet.(*ConnectPacket).ConnectHeader = header
 }
 
 func (w *PacketWriter) writeConnectHeader() {
-	header := w.packet.(*ConnectPacket).ConnectHeader
-	w.err = w.writeBytes(header.ProtocolName)
+	packet := w.packet.(*ConnectPacket)
+	w.err = w.writeBytes(packet.ConnectHeader.ProtocolName)
 	if w.err != nil {
 		return
 	}
-	w.err = w.writeByte(header.ProtocolVersion)
+	w.err = w.writeByte(packet.ConnectHeader.ProtocolVersion)
 	if w.err != nil {
 		return
 	}
-	w.err = w.writeByte(byte(header.ConnectHeaderFlags))
+	w.err = w.writeByte(byte(packet.ConnectHeader.ConnectHeaderFlags))
 	if w.err != nil {
 		return
 	}
-	w.err = w.writeUint16(header.KeepAlive)
+	w.err = w.writeUint16(packet.ConnectHeader.KeepAlive)
 	if w.err != nil {
 		return
 	}
