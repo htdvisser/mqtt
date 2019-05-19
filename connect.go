@@ -196,7 +196,10 @@ var (
 	protocolMQTT   = []byte("MQTT")
 )
 
-var errUnknownProtocolName = errors.New("mqtt: unknown protocol name")
+var (
+	errUnknownProtocolName        = errors.New("mqtt: unknown protocol name")
+	errUnsupportedProtocolVersion = errors.New("mqtt: unsupported protocol version")
+)
 
 func (r *PacketReader) readConnectHeader() {
 	packet := r.packet.(*ConnectPacket)
@@ -215,6 +218,12 @@ func (r *PacketReader) readConnectHeader() {
 	}
 	packet.ConnectHeader.ProtocolVersion, r.err = r.readByte()
 	if r.err != nil {
+		return
+	}
+	switch packet.ConnectHeader.ProtocolVersion {
+	case 3, 4, 5:
+	default:
+		r.err = errUnsupportedProtocolVersion
 		return
 	}
 	var f byte
