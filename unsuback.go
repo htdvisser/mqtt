@@ -1,9 +1,21 @@
 package mqtt
 
+import "errors"
+
+var errInvalidUnsubscribeReasonCode = errors.New("mqtt: invalid unsubscribe reason code")
+
+func (r *PacketReader) validateUnsubscribeReasonCode(c ReasonCode) error {
+	if r.validateQoS(QoS(c)) != nil && c != UnspecifiedError {
+		return errInvalidUnsubscribeReasonCode
+	}
+	return nil
+}
+
 // UnsubackPacket is the Unsuback packet.
 type UnsubackPacket struct {
 	UnsubackHeader
 	Properties
+	UnsubackPayload []ReasonCode
 }
 
 func (*UnsubackPacket) _isPacket() {}
@@ -22,6 +34,7 @@ func (p UnsubackPacket) size(protocol byte) uint32 {
 	if protocol >= 5 {
 		size += int(p.Properties.size())
 	}
+	size += len(p.UnsubackPayload)
 	return uint32(size)
 }
 
@@ -40,4 +53,38 @@ func (r *PacketReader) readUnsubackHeader() {
 func (w *PacketWriter) writeUnsubackHeader() {
 	packet := w.packet.(*UnsubackPacket)
 	w.err = w.writeUint16(packet.UnsubackHeader.PacketIdentifier)
+}
+
+func (r *PacketReader) readUnsubackPayload() {
+	packet := r.packet.(*UnsubackPacket)
+	for r.remaining() > 0 {
+		var b byte
+		if b, r.err = r.readByte(); r.err != nil {
+			return
+		}
+		returnCode := ReasonCode(b)
+		if r.err = r.validateSubscribeReasonCode(returnCode); r.err != nil {
+			return
+		}
+		packet.UnsubackPayload = append(packet.UnsubackPayload, returnCode)
+	}
+}
+
+var errUnsubscribeFailure = errors.New("mqtt: unsubscribe failure")
+
+func (w *PacketWriter) writeUnsubackPayload() {
+	packet := w.packet.(*UnsubackPacket)
+	if w.protocol < 4 {
+		for _, returnCode := range packet.UnsubackPayload {
+			if returnCode.IsError() {
+				w.err = errUnsubscribeFailure
+				return
+			}
+		}
+	}
+	for _, returnCode := range packet.UnsubackPayload {
+		if w.err = w.writeByte(byte(returnCode)); w.err != nil {
+			return
+		}
+	}
 }
