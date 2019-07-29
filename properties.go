@@ -181,7 +181,7 @@ func (p StringPair) Strings() (key, value string) {
 }
 
 func (r *PacketReader) readPacketProperties() {
-	if r.protocol < 5 {
+	if r.protocol < 5 || r.remaining() == 0 {
 		return
 	}
 	var properties Properties
