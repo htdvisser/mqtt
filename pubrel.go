@@ -38,7 +38,7 @@ func (r *PacketReader) readPubrelHeader() {
 	if packet.PubrelHeader.PacketIdentifier, r.err = r.readUint16(); r.err != nil {
 		return
 	}
-	if r.protocol >= 5 {
+	if r.protocol >= 5 && r.remaining() > 0 {
 		var f byte
 		if f, r.err = r.readByte(); r.err != nil {
 			return

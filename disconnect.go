@@ -33,7 +33,7 @@ type DisconnectHeader struct {
 
 func (r *PacketReader) readDisconnectHeader() {
 	packet := r.packet.(*DisconnectPacket)
-	if r.protocol >= 5 {
+	if r.protocol >= 5 && r.remaining() > 0 {
 		var f byte
 		if f, r.err = r.readByte(); r.err != nil {
 			return
