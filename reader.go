@@ -32,9 +32,9 @@ func (r *PacketReader) SetProtocol(protocol byte) {
 // NewReader returns a new Reader on top of the given io.Reader.
 func NewReader(rd io.Reader) *PacketReader {
 	if r, ok := rd.(reader); ok {
-		return &PacketReader{r: r}
+		return &PacketReader{r: r, protocol: DefaultProtocolVersion}
 	}
-	return &PacketReader{r: bufio.NewReader(rd)}
+	return &PacketReader{r: bufio.NewReader(rd), protocol: DefaultProtocolVersion}
 }
 
 var errUnknownPacket = errors.New("mqtt: unknown packet")
@@ -43,9 +43,7 @@ func (r *PacketReader) readVariableHeader() {
 	switch r.packet.PacketType() {
 	case CONNECT:
 		r.readConnectHeader()
-		if r.protocol == 0 {
-			r.protocol = r.packet.(*ConnectPacket).ConnectHeader.ProtocolVersion
-		}
+		r.protocol = r.packet.(*ConnectPacket).ConnectHeader.ProtocolVersion
 	case CONNACK:
 		r.readConnackHeader()
 	case PUBLISH:

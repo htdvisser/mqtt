@@ -23,7 +23,7 @@ func (w *PacketWriter) SetProtocol(protocol byte) {
 
 // NewWriter returns a new Writer on top of the given io.Writer.
 func NewWriter(wr io.Writer) *PacketWriter {
-	return &PacketWriter{w: wr}
+	return &PacketWriter{w: wr, protocol: DefaultProtocolVersion}
 }
 
 func (w *PacketWriter) writeVariableHeader() {
