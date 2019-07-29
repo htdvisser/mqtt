@@ -243,11 +243,27 @@ func (r *PacketReader) readConnectHeader() {
 
 func (w *PacketWriter) writeConnectHeader() {
 	packet := w.packet.(*ConnectPacket)
-	w.err = w.writeBytes(packet.ConnectHeader.ProtocolName)
+	protocolName := packet.ConnectHeader.ProtocolName
+	if len(protocolName) == 0 {
+		switch w.protocol {
+		case 3:
+			protocolName = protocolMQIsdp
+		case 4, 5:
+			protocolName = protocolMQTT
+		default:
+			w.err = errUnsupportedProtocolVersion
+			return
+		}
+	}
+	w.err = w.writeBytes(protocolName)
 	if w.err != nil {
 		return
 	}
-	w.err = w.writeByte(packet.ConnectHeader.ProtocolVersion)
+	protocolVersion := packet.ConnectHeader.ProtocolVersion
+	if protocolVersion == 0 {
+		protocolVersion = w.protocol
+	}
+	w.err = w.writeByte(protocolVersion)
 	if w.err != nil {
 		return
 	}
