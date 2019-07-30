@@ -4,13 +4,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync"
 )
 
 // PacketWriter writes MQTT packets.
-// PacketWriter is not safe for concurrent use.
 type PacketWriter struct {
 	w        io.Writer
 	protocol byte
+	mu       sync.Mutex
 	nWritten uint32
 	packet   Packet
 	err      error
@@ -18,7 +19,9 @@ type PacketWriter struct {
 
 // SetProtocol sets the MQTT protocol version.
 func (w *PacketWriter) SetProtocol(protocol byte) {
+	w.mu.Lock()
 	w.protocol = protocol
+	w.mu.Unlock()
 }
 
 // NewWriter returns a new Writer on top of the given io.Writer.
@@ -74,6 +77,8 @@ func (w *PacketWriter) writePayload() {
 
 // WritePacket writes the given packet.
 func (w *PacketWriter) WritePacket(packet Packet) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.packet = packet
 	w.writeFixedHeader()
 	if w.err != nil {

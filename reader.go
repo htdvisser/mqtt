@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -14,10 +15,10 @@ type reader interface {
 }
 
 // PacketReader reads MQTT packets.
-// PacketReader is not safe for concurrent use.
 type PacketReader struct {
 	r        reader
 	protocol byte
+	mu       sync.Mutex
 	nRead    uint32
 	header   FixedHeader
 	packet   Packet
@@ -26,7 +27,9 @@ type PacketReader struct {
 
 // SetProtocol sets the MQTT protocol version.
 func (r *PacketReader) SetProtocol(protocol byte) {
+	r.mu.Lock()
 	r.protocol = protocol
+	r.mu.Unlock()
 }
 
 // NewReader returns a new Reader on top of the given io.Reader.
@@ -98,6 +101,8 @@ func (r *PacketReader) readPayload() {
 
 // ReadPacket reads the next packet.
 func (r *PacketReader) ReadPacket() (Packet, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.readFixedHeader()
 	if r.err != nil {
 		return nil, r.err
