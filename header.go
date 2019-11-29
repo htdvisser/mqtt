@@ -44,10 +44,13 @@ func (h *FixedHeader) SetPacketType(p PacketType) {
 	h.typeAndFlags |= byte(p) << 4
 }
 
+var errReservedPacketType = errors.New("mqtt: reserved packed type")
 var errInvalidHeaderFlags = errors.New("mqtt: invalid header flags")
 
 func (r *PacketReader) validateFixedHeader(h FixedHeader) error {
 	switch h.PacketType() {
+	case 0:
+		return errReservedPacketType
 	case PUBLISH:
 		return r.validatePublishFlags(PublishFlags(h.typeAndFlags))
 	case PUBREL, SUBSCRIBE, UNSUBSCRIBE:
