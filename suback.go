@@ -5,10 +5,36 @@ import "errors"
 var errInvalidSubscribeReasonCode = errors.New("mqtt: invalid subscribe reason code")
 
 func (r *PacketReader) validateSubscribeReasonCode(c ReasonCode) error {
-	if r.validateQoS(QoS(c)) != nil && c != UnspecifiedError {
-		return errInvalidSubscribeReasonCode
+	switch {
+	case r.protocol >= 5:
+		switch c {
+		case GrantedQoS0,
+			GrantedQoS1,
+			GrantedQoS2,
+			UnspecifiedError,
+			ImplementationSpecificError,
+			NotAuthorized,
+			TopicFilterInvalid,
+			PacketIdentifierInUse,
+			QuotaExceeded,
+			SharedSubscriptionsNotSupported,
+			SubscriptionIdentifiersNotSupported,
+			WildcardSubscriptionsNotSupported:
+			return nil
+		default:
+			return errInvalidSubscribeReasonCode
+		}
+	default:
+		switch c {
+		case GrantedQoS0,
+			GrantedQoS1,
+			GrantedQoS2,
+			UnspecifiedError:
+			return nil
+		default:
+			return errInvalidSubscribeReasonCode
+		}
 	}
-	return nil
 }
 
 // SubackPacket is the Suback packet.
