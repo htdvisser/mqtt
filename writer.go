@@ -72,6 +72,8 @@ func (w *PacketWriter) writePayload() {
 		w.writeSubackPayload()
 	case UNSUBSCRIBE:
 		w.writeUnsubscribePayload()
+	case UNSUBACK:
+		w.writeUnsubackPayload()
 	}
 }
 

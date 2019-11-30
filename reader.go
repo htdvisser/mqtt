@@ -92,6 +92,8 @@ func (r *PacketReader) readPayload() {
 		r.readSubackPayload()
 	case UNSUBSCRIBE:
 		r.readUnsubscribePayload()
+	case UNSUBACK:
+		r.readUnsubackPayload()
 	default:
 		if r.remaining() > 0 {
 			r.err = errRemainingData
