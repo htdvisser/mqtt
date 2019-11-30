@@ -63,7 +63,7 @@ func (r *PacketReader) readUnsubackPayload() {
 			return
 		}
 		returnCode := ReasonCode(b)
-		if r.err = r.validateSubscribeReasonCode(returnCode); r.err != nil {
+		if r.err = r.validateUnsubscribeReasonCode(returnCode); r.err != nil {
 			return
 		}
 		packet.UnsubackPayload = append(packet.UnsubackPayload, returnCode)
