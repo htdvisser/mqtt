@@ -339,7 +339,7 @@ func (w *PacketWriter) writeConnectPayload() {
 	if w.err != nil {
 		return
 	}
-	if len(packet.ConnectPayload.ClientIdentifier) == 0 && !packet.ConnectHeader.CleanSession() {
+	if w.protocol < 5 && len(packet.ConnectPayload.ClientIdentifier) == 0 && !packet.ConnectHeader.CleanSession() {
 		w.err = errEmptyClientIdentifier
 		return
 	}
