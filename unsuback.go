@@ -5,10 +5,23 @@ import "errors"
 var errInvalidUnsubscribeReasonCode = errors.New("mqtt: invalid unsubscribe reason code")
 
 func (r *PacketReader) validateUnsubscribeReasonCode(c ReasonCode) error {
-	if r.validateQoS(QoS(c)) != nil && c != UnspecifiedError {
-		return errInvalidUnsubscribeReasonCode
+	switch {
+	case r.protocol >= 5:
+		switch c {
+		case Success,
+			NoSubscriptionExisted,
+			UnspecifiedError,
+			ImplementationSpecificError,
+			NotAuthorized,
+			TopicFilterInvalid,
+			PacketIdentifierInUse:
+			return nil
+		default:
+			return errInvalidSubscribeReasonCode
+		}
+	default:
+		return nil
 	}
-	return nil
 }
 
 // UnsubackPacket is the Unsuback packet.
