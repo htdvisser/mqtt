@@ -32,9 +32,9 @@ func (p UnsubackPacket) fixedHeader(protocol byte) (h FixedHeader) {
 func (p UnsubackPacket) size(protocol byte) uint32 {
 	size := 2
 	if protocol >= 5 {
+		size += len(p.UnsubackPayload)
 		size += int(p.Properties.size())
 	}
-	size += len(p.UnsubackPayload)
 	return uint32(size)
 }
 
@@ -57,16 +57,18 @@ func (w *PacketWriter) writeUnsubackHeader() {
 
 func (r *PacketReader) readUnsubackPayload() {
 	packet := r.packet.(*UnsubackPacket)
-	for r.remaining() > 0 {
-		var b byte
-		if b, r.err = r.readByte(); r.err != nil {
-			return
+	if r.protocol >= 5 {
+		for r.remaining() > 0 {
+			var b byte
+			if b, r.err = r.readByte(); r.err != nil {
+				return
+			}
+			returnCode := ReasonCode(b)
+			if r.err = r.validateUnsubscribeReasonCode(returnCode); r.err != nil {
+				return
+			}
+			packet.UnsubackPayload = append(packet.UnsubackPayload, returnCode)
 		}
-		returnCode := ReasonCode(b)
-		if r.err = r.validateUnsubscribeReasonCode(returnCode); r.err != nil {
-			return
-		}
-		packet.UnsubackPayload = append(packet.UnsubackPayload, returnCode)
 	}
 }
 
@@ -74,17 +76,18 @@ var errUnsubscribeFailure = errors.New("mqtt: unsubscribe failure")
 
 func (w *PacketWriter) writeUnsubackPayload() {
 	packet := w.packet.(*UnsubackPacket)
-	if w.protocol < 4 {
+	if w.protocol >= 5 {
+		for _, returnCode := range packet.UnsubackPayload {
+			if w.err = w.writeByte(byte(returnCode)); w.err != nil {
+				return
+			}
+		}
+	} else {
 		for _, returnCode := range packet.UnsubackPayload {
 			if returnCode.IsError() {
 				w.err = errUnsubscribeFailure
 				return
 			}
-		}
-	}
-	for _, returnCode := range packet.UnsubackPayload {
-		if w.err = w.writeByte(byte(returnCode)); w.err != nil {
-			return
 		}
 	}
 }
