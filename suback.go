@@ -74,11 +74,18 @@ var errSubscribeFailure = errors.New("mqtt: subscribe failure")
 
 func (w *PacketWriter) writeSubackPayload() {
 	packet := w.packet.(*SubackPacket)
-	if w.protocol < 4 {
+	switch {
+	case w.protocol < 4:
 		for _, returnCode := range packet.SubackPayload {
 			if returnCode.IsError() {
 				w.err = errSubscribeFailure
 				return
+			}
+		}
+	case w.protocol < 5:
+		for i, returnCode := range packet.SubackPayload {
+			if returnCode.IsError() {
+				packet.SubackPayload[i] = UnspecifiedError
 			}
 		}
 	}
