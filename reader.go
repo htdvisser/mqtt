@@ -9,6 +9,17 @@ import (
 	"unicode/utf8"
 )
 
+// ReaderOption is an option for the PacketReader.
+type ReaderOption interface {
+	apply(*PacketReader)
+}
+
+type readerOptionFunc func(*PacketReader)
+
+func (f readerOptionFunc) apply(r *PacketReader) {
+	f(r)
+}
+
 type reader interface {
 	io.Reader
 	io.ByteReader
@@ -33,11 +44,19 @@ func (r *PacketReader) SetProtocol(protocol byte) {
 }
 
 // NewReader returns a new Reader on top of the given io.Reader.
-func NewReader(rd io.Reader) *PacketReader {
-	if r, ok := rd.(reader); ok {
-		return &PacketReader{r: r, protocol: DefaultProtocolVersion}
+func NewReader(rd io.Reader, opts ...ReaderOption) *PacketReader {
+	pr := &PacketReader{
+		protocol: DefaultProtocolVersion,
 	}
-	return &PacketReader{r: bufio.NewReader(rd), protocol: DefaultProtocolVersion}
+	if r, ok := rd.(reader); ok {
+		pr.r = r
+	} else {
+		pr.r = bufio.NewReader(rd)
+	}
+	for _, opt := range opts {
+		opt.apply(pr)
+	}
+	return pr
 }
 
 var errUnknownPacket = errors.New("mqtt: unknown packet")

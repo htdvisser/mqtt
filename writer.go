@@ -7,6 +7,17 @@ import (
 	"sync"
 )
 
+// WriterOption is an option for the PacketWriter.
+type WriterOption interface {
+	apply(*PacketWriter)
+}
+
+type writerOptionFunc func(*PacketWriter)
+
+func (f writerOptionFunc) apply(w *PacketWriter) {
+	f(w)
+}
+
 // PacketWriter writes MQTT packets.
 type PacketWriter struct {
 	w        io.Writer
@@ -25,8 +36,15 @@ func (w *PacketWriter) SetProtocol(protocol byte) {
 }
 
 // NewWriter returns a new Writer on top of the given io.Writer.
-func NewWriter(wr io.Writer) *PacketWriter {
-	return &PacketWriter{w: wr, protocol: DefaultProtocolVersion}
+func NewWriter(wr io.Writer, opts ...WriterOption) *PacketWriter {
+	pw := &PacketWriter{
+		w:        wr,
+		protocol: DefaultProtocolVersion,
+	}
+	for _, opt := range opts {
+		opt.apply(pw)
+	}
+	return pw
 }
 
 func (w *PacketWriter) writeVariableHeader() {
