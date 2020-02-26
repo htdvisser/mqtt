@@ -1,5 +1,7 @@
 package mqtt
 
+import "fmt"
+
 // ReasonCode indicates the result of an operation
 type ReasonCode byte
 
@@ -52,5 +54,122 @@ const (
 	WildcardSubscriptionsNotSupported   ReasonCode = 0xA2 // Wildcard Subscriptions not supported
 )
 
+func (c ReasonCode) String() string {
+	switch c {
+	case 0:
+		return "OK" // Success | Normal disconnection | Granted QoS 0
+	case GrantedQoS1:
+		return "Granted QoS 1"
+	case GrantedQoS2:
+		return "Granted QoS 2"
+	case DisconnectWithWillMessage:
+		return "Disconnect with Will Message"
+	case NoMatchingSubscribers:
+		return "No matching subscribers"
+	case NoSubscriptionExisted:
+		return "No subscription existed"
+	case ContinueAuthentication:
+		return "Continue authentication"
+	case ReAuthenticate:
+		return "Re-authenticate"
+	case UnspecifiedError:
+		return "Unspecified error"
+	case MalformedPacket:
+		return "Malformed Packet"
+	case ProtocolError:
+		return "Protocol Error"
+	case ImplementationSpecificError:
+		return "Implementation specific error"
+	case UnsupportedProtocolVersion:
+		return "Unsupported Protocol Version"
+	case ClientIdentifierNotValid:
+		return "Client Identifier not valid"
+	case BadUsernameOrPassword:
+		return "Bad User Name or Password"
+	case NotAuthorized:
+		return "Not authorized"
+	case ServerUnavailable:
+		return "Server unavailable"
+	case ServerBusy:
+		return "Server busy"
+	case Banned:
+		return "Banned"
+	case ServerShuttingDown:
+		return "Server shutting down"
+	case BadAuthenticationMethod:
+		return "Bad authentication method"
+	case KeepAliveTimeout:
+		return "Keep Alive timeout"
+	case SessionTakenOver:
+		return "Session taken over"
+	case TopicFilterInvalid:
+		return "Topic Filter invalid"
+	case TopicNameInvalid:
+		return "Topic Name invalid"
+	case PacketIdentifierInUse:
+		return "Packet Identifier in use"
+	case PacketIdentifierNotFound:
+		return "Packet Identifier not found"
+	case ReceiveMaximumExceeded:
+		return "Receive Maximum exceeded"
+	case TopicAliasInvalid:
+		return "Topic Alias invalid"
+	case PacketTooLarge:
+		return "Packet too large"
+	case MessageRateTooHigh:
+		return "Message rate too high"
+	case QuotaExceeded:
+		return "Quota exceeded"
+	case AdministrativeAction:
+		return "Administrative action"
+	case PayloadFormatInvalid:
+		return "Payload format invalid"
+	case RetainNotSupported:
+		return "Retain not supported"
+	case QoSNotSupported:
+		return "QoS not supported"
+	case UseAnotherServer:
+		return "Use another server"
+	case ServerMoved:
+		return "Server moved"
+	case SharedSubscriptionsNotSupported:
+		return "Shared Subscriptions not supported"
+	case ConnectionRateExceeded:
+		return "Connection rate exceeded"
+	case MaximumConnectTime:
+		return "Maximum connect time"
+	case SubscriptionIdentifiersNotSupported:
+		return "Subscription Identifiers not supported"
+	case WildcardSubscriptionsNotSupported:
+		return "Wildcard Subscriptions not supported"
+	default:
+		return fmt.Sprintf("Unknown reason code: 0x%x", byte(c))
+	}
+}
+
 // IsError returns whether the reason code is an error code.
 func (c ReasonCode) IsError() bool { return c >= 0x80 }
+
+type reasonCodeError struct {
+	reasonCode ReasonCode
+	message    string
+}
+
+// NewReasonCodeError returns a new error based on the given reason code.
+func NewReasonCodeError(c ReasonCode, message string) error {
+	if !c.IsError() {
+		panic(fmt.Errorf("mqtt: reason code 0x%x (%q) is not an error", byte(c), c))
+	}
+	return reasonCodeError{c, message}
+}
+
+func (e reasonCodeError) Error() string {
+	if e.message != "" {
+		return e.message
+	}
+	return fmt.Sprintf("mqtt: %s", e.reasonCode)
+}
+
+func (e reasonCodeError) ReasonCode() ReasonCode {
+	return e.reasonCode
+}
