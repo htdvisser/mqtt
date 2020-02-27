@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
 	"sync"
 )
@@ -150,7 +149,7 @@ func (w *PacketWriter) writeUvarint(i uint32) error {
 	return w.write(b[:n])
 }
 
-var errInvalidBytesLength = errors.New("mqtt: invalid bytes length")
+var errInvalidBytesLength = NewReasonCodeError(ProtocolError, "mqtt: invalid bytes length")
 
 func (w *PacketWriter) writeBytes(b []byte) error {
 	if len(b) > 65535 {

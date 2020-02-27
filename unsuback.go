@@ -1,8 +1,6 @@
 package mqtt
 
-import "errors"
-
-var errInvalidUnsubscribeReasonCode = errors.New("mqtt: invalid unsubscribe reason code")
+var errInvalidUnsubscribeReasonCode = NewReasonCodeError(ProtocolError, "mqtt: invalid unsubscribe reason code")
 
 func (r *PacketReader) validateUnsubscribeReasonCode(c ReasonCode) error {
 	switch {
@@ -85,8 +83,6 @@ func (r *PacketReader) readUnsubackPayload() {
 	}
 }
 
-var errUnsubscribeFailure = errors.New("mqtt: unsubscribe failure")
-
 func (w *PacketWriter) writeUnsubackPayload() {
 	packet := w.packet.(*UnsubackPacket)
 	if w.protocol >= 5 {
@@ -98,7 +94,7 @@ func (w *PacketWriter) writeUnsubackPayload() {
 	} else {
 		for _, returnCode := range packet.UnsubackPayload {
 			if returnCode.IsError() {
-				w.err = errUnsubscribeFailure
+				w.err = NewReasonCodeError(returnCode, "")
 				return
 			}
 		}

@@ -2,7 +2,7 @@ package mqtt
 
 import (
 	"encoding/binary"
-	"errors"
+	"fmt"
 )
 
 // Properties is a slice of MQTT Properties.
@@ -158,12 +158,10 @@ func init() {
 	allowPropertyIdentifier(SharedSubscriptionAvailable, CONNACK)
 }
 
-var errInvalidProperties = errors.New("mqtt: invalid properties")
-
 func (r *PacketReader) validateProperties(properties Properties, packetType PacketType) error {
 	for _, property := range properties {
 		if !allowedPropertyIdentifiers[property.Identifier][packetType] {
-			return errInvalidProperties
+			return NewReasonCodeError(MalformedPacket, fmt.Sprintf("mqtt: invalid property %d for %s", property.Identifier, packetType))
 		}
 	}
 	return nil
@@ -251,7 +249,7 @@ func (r *PacketReader) readProperties() Properties {
 	return properties
 }
 
-var errUnknownProperty = errors.New("mqtt: unknown property")
+var errUnknownProperty = NewReasonCodeError(ProtocolError, "mqtt: unknown property")
 
 func (r *PacketReader) readProperty() (p Property) {
 	var id uint64

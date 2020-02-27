@@ -1,7 +1,5 @@
 package mqtt
 
-import "errors"
-
 // PublishPacket is the Publish packet.
 type PublishPacket struct {
 	PublishFlags
@@ -56,7 +54,7 @@ func (r *PacketReader) validateQoS(qos QoS) error {
 // PublishFlags are the fixed header flags for a Publish packet.
 type PublishFlags byte
 
-var errInvalidQoS = errors.New("mqtt: invalid QoS")
+var errInvalidQoS = NewReasonCodeError(MalformedPacket, "mqtt: invalid QoS")
 
 func (r *PacketReader) validatePublishFlags(f PublishFlags) error {
 	return r.validateQoS(f.QoS())

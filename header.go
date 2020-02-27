@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 )
 
@@ -82,8 +81,10 @@ func (h *FixedHeader) SetPacketType(p PacketType) {
 	h.typeAndFlags |= byte(p) << 4
 }
 
-var errReservedPacketType = errors.New("mqtt: reserved packed type")
-var errInvalidHeaderFlags = errors.New("mqtt: invalid header flags")
+var (
+	errReservedPacketType = NewReasonCodeError(MalformedPacket, "mqtt: reserved packed type")
+	errInvalidHeaderFlags = NewReasonCodeError(MalformedPacket, "mqtt: invalid header flags")
+)
 
 func (r *PacketReader) validateFixedHeader(h FixedHeader) error {
 	switch h.PacketType() {
@@ -105,7 +106,7 @@ func (r *PacketReader) validateFixedHeader(h FixedHeader) error {
 
 const maxRemainingLength = 268435455
 
-var errInvalidRemainingLength = errors.New("mqtt: invalid remaining length")
+var errInvalidRemainingLength = NewReasonCodeError(ProtocolError, "mqtt: invalid remaining length")
 
 func (r *PacketReader) readFixedHeader() {
 	r.header.typeAndFlags, r.err = r.readByte()

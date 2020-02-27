@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"bytes"
-	"errors"
 )
 
 // ConnectPacket is the Connect packet.
@@ -100,7 +99,7 @@ type ConnectHeader struct {
 // ConnectHeaderFlags are the flags in the header of the Connect packet.
 type ConnectHeaderFlags byte
 
-var errInvalidConnectHeaderFlags = errors.New("mqtt: invalid connect header flags")
+var errInvalidConnectHeaderFlags = NewReasonCodeError(MalformedPacket, "mqtt: invalid connect header flags")
 
 func (r *PacketReader) validateConnectHeaderFlags(f ConnectHeaderFlags) error {
 	if f&0x18 == 0x18 {
@@ -197,8 +196,8 @@ var (
 )
 
 var (
-	errUnknownProtocolName        = errors.New("mqtt: unknown protocol name")
-	errUnsupportedProtocolVersion = errors.New("mqtt: unsupported protocol version")
+	errUnknownProtocolName        = NewReasonCodeError(ProtocolError, "mqtt: unknown protocol name")
+	errUnsupportedProtocolVersion = NewReasonCodeError(UnsupportedProtocolVersion, "mqtt: unsupported protocol version")
 )
 
 func (r *PacketReader) readConnectHeader() {
@@ -287,7 +286,7 @@ type ConnectPayload struct {
 	Password         []byte
 }
 
-var errEmptyClientIdentifier = errors.New("mqtt: empty client identifier")
+var errEmptyClientIdentifier = NewReasonCodeError(ClientIdentifierNotValid, "mqtt: empty client identifier")
 
 func (r *PacketReader) readConnectPayload() {
 	packet := r.packet.(*ConnectPacket)

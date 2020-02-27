@@ -1,8 +1,6 @@
 package mqtt
 
-import "errors"
-
-var errInvalidSubscribeReasonCode = errors.New("mqtt: invalid subscribe reason code")
+var errInvalidSubscribeReasonCode = NewReasonCodeError(ProtocolError, "mqtt: invalid subscribe reason code")
 
 func (r *PacketReader) validateSubscribeReasonCode(c ReasonCode) error {
 	switch {
@@ -96,15 +94,13 @@ func (r *PacketReader) readSubackPayload() {
 	}
 }
 
-var errSubscribeFailure = errors.New("mqtt: subscribe failure")
-
 func (w *PacketWriter) writeSubackPayload() {
 	packet := w.packet.(*SubackPacket)
 	switch {
 	case w.protocol < 4:
 		for _, returnCode := range packet.SubackPayload {
 			if returnCode.IsError() {
-				w.err = errSubscribeFailure
+				w.err = NewReasonCodeError(returnCode, "")
 				return
 			}
 		}

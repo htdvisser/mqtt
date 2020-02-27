@@ -3,7 +3,6 @@ package mqtt
 import (
 	"bufio"
 	"encoding/binary"
-	"errors"
 	"io"
 	"sync"
 	"unicode/utf8"
@@ -59,7 +58,7 @@ func NewReader(rd io.Reader, opts ...ReaderOption) *PacketReader {
 	return pr
 }
 
-var errUnknownPacket = errors.New("mqtt: unknown packet")
+var errUnknownPacket = NewReasonCodeError(ProtocolError, "mqtt: unknown packet")
 
 func (r *PacketReader) readVariableHeader() {
 	switch r.packet.PacketType() {
@@ -97,7 +96,7 @@ func (r *PacketReader) readVariableHeader() {
 	}
 }
 
-var errRemainingData = errors.New("mqtt: unexpected remaining data after reading packet")
+var errRemainingData = NewReasonCodeError(ProtocolError, "mqtt: unexpected remaining data after reading packet")
 
 func (r *PacketReader) readPayload() {
 	switch r.packet.PacketType() {
@@ -243,7 +242,7 @@ func (r *PacketReader) readBytes() ([]byte, error) {
 	return b, nil
 }
 
-var errInvalidUTF8 = errors.New("mqtt: invalid utf-8 string")
+var errInvalidUTF8 = NewReasonCodeError(MalformedPacket, "mqtt: invalid utf-8 string")
 
 func (r *PacketReader) readString() ([]byte, error) {
 	b, err := r.readBytes()

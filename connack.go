@@ -1,7 +1,5 @@
 package mqtt
 
-import "errors"
-
 // ConnackPacket is the Connack packet.
 type ConnackPacket struct {
 	ConnackHeader
@@ -36,7 +34,7 @@ type ConnackHeader struct {
 // ConnackHeaderFlags are the flags in the header of the Connack packet.
 type ConnackHeaderFlags byte
 
-var errInvalidConnackHeaderFlags = errors.New("mqtt: invalid connack header flags")
+var errInvalidConnackHeaderFlags = NewReasonCodeError(ProtocolError, "mqtt: invalid connack header flags")
 
 func (r *PacketReader) validateConnackHeaderFlags(f ConnackHeaderFlags) error {
 	if r.protocol < 4 && f != 0x00 {
