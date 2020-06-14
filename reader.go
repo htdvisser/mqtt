@@ -19,6 +19,14 @@ func (f readerOptionFunc) apply(r *PacketReader) {
 	f(r)
 }
 
+// WithMaxPacketLength returns a ReaderOption that configures a maximum packet
+// length on the Reader.
+func WithMaxPacketLength(bytes uint32) ReaderOption {
+	return readerOptionFunc(func(r *PacketReader) {
+		r.maxPacketLength = bytes
+	})
+}
+
 type reader interface {
 	io.Reader
 	io.ByteReader
@@ -26,13 +34,14 @@ type reader interface {
 
 // PacketReader reads MQTT packets.
 type PacketReader struct {
-	r        reader
-	protocol byte
-	mu       sync.Mutex
-	nRead    uint32
-	header   FixedHeader
-	packet   Packet
-	err      error
+	maxPacketLength uint32
+	r               reader
+	protocol        byte
+	mu              sync.Mutex
+	nRead           uint32
+	header          FixedHeader
+	packet          Packet
+	err             error
 }
 
 // SetProtocol sets the MQTT protocol version.

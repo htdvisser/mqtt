@@ -108,6 +108,8 @@ const maxRemainingLength = 268435455
 
 var errInvalidRemainingLength = NewReasonCodeError(ProtocolError, "mqtt: invalid remaining length")
 
+var errPacketTooLarge = NewReasonCodeError(PacketTooLarge, "mqtt: packet too large")
+
 func (r *PacketReader) readFixedHeader() {
 	r.header.typeAndFlags, r.err = r.readByte()
 	if r.err != nil {
@@ -124,6 +126,13 @@ func (r *PacketReader) readFixedHeader() {
 	}
 	r.header.remainingLength = uint32(remainingLength)
 	r.err = r.validateFixedHeader(r.header)
+	if r.err != nil {
+		return
+	}
+	if r.maxPacketLength > 0 && r.nRead+r.header.remainingLength > r.maxPacketLength {
+		r.err = errPacketTooLarge
+		return
+	}
 }
 
 func (w *PacketWriter) writeFixedHeader() (err error) {
