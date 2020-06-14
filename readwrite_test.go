@@ -79,7 +79,9 @@ func TestReadWrite(t *testing.T) {
 				}
 
 				err := w.WritePacket(testPacket)
-				assert.NoError(err)
+				if !assert.NoError(err) {
+					t.FailNow()
+				}
 
 				t.Logf("%x", buf.Bytes())
 
@@ -95,7 +97,9 @@ func TestReadWrite(t *testing.T) {
 					return
 				}
 
-				assert.NoError(err)
+				if !assert.NoError(err) {
+					t.FailNow()
+				}
 
 				assert.Equal(testPacket, pkt)
 
