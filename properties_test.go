@@ -28,6 +28,7 @@ func TestReadWriteProperties(t *testing.T) {
 			buf = bytes.NewBuffer(buf.Bytes())
 
 			r := NewReader(buf)
+			r.header.remainingLength = w.nWritten
 
 			p := r.readProperty()
 			assert.NoError(r.err)
@@ -51,6 +52,7 @@ func TestReadWriteProperties(t *testing.T) {
 	buf = bytes.NewBuffer(buf.Bytes())
 
 	r := NewReader(buf)
+	r.header.remainingLength = w.nWritten
 
 	p := r.readProperties()
 	assert.NoError(r.err)

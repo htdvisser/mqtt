@@ -111,12 +111,14 @@ var errInvalidRemainingLength = NewReasonCodeError(ProtocolError, "mqtt: invalid
 var errPacketTooLarge = NewReasonCodeError(PacketTooLarge, "mqtt: packet too large")
 
 func (r *PacketReader) readFixedHeader() {
+	r.header.remainingLength = 1 // Enough to read the packet type and flags.
 	r.header.typeAndFlags, r.err = r.readByte()
 	if r.err != nil {
 		return
 	}
+	r.header.remainingLength = 5 // Enough to read the "remaining length" field.
 	var remainingLength uint64
-	remainingLength, r.err = binary.ReadUvarint(r.r)
+	remainingLength, r.err = r.readUvarint()
 	if r.err != nil {
 		return
 	}

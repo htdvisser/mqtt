@@ -132,6 +132,7 @@ func (r *PacketReader) readPayload() {
 func (r *PacketReader) ReadPacket() (Packet, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.nRead = 0
 	r.readFixedHeader()
 	if r.err != nil {
 		return nil, r.err
@@ -186,7 +187,12 @@ func (r *PacketReader) ReadPacket() (Packet, error) {
 	return r.packet, nil
 }
 
+var errInsufficientRemainingBytes = NewReasonCodeError(MalformedPacket, "insufficient remaining bytes")
+
 func (r *PacketReader) read(b []byte) error {
+	if r.remaining() < uint32(len(b)) {
+		return errInsufficientRemainingBytes
+	}
 	n, err := io.ReadFull(r.r, b)
 	if err != nil {
 		return err
@@ -196,9 +202,12 @@ func (r *PacketReader) read(b []byte) error {
 }
 
 func (r *PacketReader) readByte() (b byte, err error) {
+	if r.remaining() < 1 {
+		return 0, errInsufficientRemainingBytes
+	}
 	b, err = r.r.ReadByte()
 	if err != nil {
-		return
+		return 0, err
 	}
 	r.nRead++
 	return
