@@ -1,9 +1,12 @@
 package mqtt_test
 
 import (
+	"context"
 	"errors"
 	"log"
 	"net"
+	"sync"
+	"time"
 
 	"htdvisser.dev/mqtt"
 )
@@ -31,7 +34,18 @@ func checkAuth(username, password []byte) error {
 
 func Example_server() {
 	ListenAndAccept("localhost:1883", func(conn net.Conn) error {
+		ctx, cancel := context.WithCancel(context.Background())
+		var wg sync.WaitGroup
+		defer func() {
+			cancel()
+			wg.Wait()
+		}()
+
 		reader, writer := mqtt.NewReader(conn), mqtt.NewWriter(conn)
+
+		timeout := 10 * time.Second
+
+		conn.SetReadDeadline(time.Now().Add(timeout)) // Read deadline for CONNECT.
 
 		packet, err := reader.ReadPacket()
 		if err != nil {
@@ -43,6 +57,8 @@ func Example_server() {
 		connect := packet.(*mqtt.ConnectPacket)
 		writer.SetProtocol(connect.ProtocolVersion)
 
+		conn.SetWriteDeadline(time.Now().Add(timeout)) // Write deadline for CONNACK.
+
 		connack := connect.Connack()
 
 		if err := checkAuth(connect.Username(), connect.Password()); err != nil {
@@ -50,17 +66,46 @@ func Example_server() {
 			return writer.WritePacket(connack)
 		}
 
-		// TODO: Handle keepalive, session, will, ...
+		if connect.KeepAlive != 0 {
+			timeout = time.Duration(connect.KeepAlive) * 1500 * time.Millisecond
+		}
+
+		// TODO: Handle session, will, ...
 
 		if err = writer.WritePacket(connack); err != nil {
 			return err
 		}
 
-		go func() {
-			// TODO: Handle publishes to client
+		conn.SetReadDeadline(time.Now().Add(timeout))
+		conn.SetWriteDeadline(time.Time{}) // Clear write deadline.
+
+		var (
+			controlPackets = make(chan mqtt.Packet)
+			publishPackets = make(chan *mqtt.PublishPacket)
+		)
+
+		wg.Add(1)
+		go func() { // Write routine
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case pkt := <-controlPackets:
+					conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+					err = writer.WritePacket(pkt)
+				case pkt := <-publishPackets:
+					conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+					err = writer.WritePacket(pkt)
+				}
+				if err != nil {
+					// TODO: Handle error
+				}
+			}
 		}()
 
-		for {
+		for { // Read routine
+			conn.SetReadDeadline(time.Now().Add(timeout))
 			packet, err := reader.ReadPacket()
 			if err != nil {
 				return err
@@ -73,11 +118,11 @@ func Example_server() {
 				case mqtt.QoS1:
 					puback := publish.Puback()
 					// TODO: Handle QoS 1 publish
-					err = writer.WritePacket(puback)
+					controlPackets <- puback
 				case mqtt.QoS2:
 					pubrec := publish.Pubrec()
 					// TODO: Handle QoS 2 publish
-					err = writer.WritePacket(pubrec)
+					controlPackets <- pubrec
 				}
 			case mqtt.PUBACK:
 				puback := packet.(*mqtt.PubackPacket)
@@ -87,12 +132,12 @@ func Example_server() {
 				pubrec := packet.(*mqtt.PubrecPacket)
 				pubrel := pubrec.Pubrel()
 				// TODO: Handle QoS 2 publish
-				err = writer.WritePacket(pubrel)
+				controlPackets <- pubrel
 			case mqtt.PUBREL:
 				pubrel := packet.(*mqtt.PubrelPacket)
 				pubcomp := pubrel.Pubcomp()
 				// TODO: Handle QoS 2 publish
-				err = writer.WritePacket(pubcomp)
+				controlPackets <- pubcomp
 			case mqtt.PUBCOMP:
 				pubcomp := packet.(*mqtt.PubcompPacket)
 				// TODO: Handle QoS 2 publish
@@ -101,16 +146,16 @@ func Example_server() {
 				subscribe := packet.(*mqtt.SubscribePacket)
 				suback := subscribe.Suback()
 				// TODO: Handle subscribe, set reason codes in suback
-				err = writer.WritePacket(suback)
+				controlPackets <- suback
 			case mqtt.UNSUBSCRIBE:
 				unsubscribe := packet.(*mqtt.UnsubscribePacket)
 				unsuback := unsubscribe.Unsuback()
 				// TODO: Handle unsubscribe, set reason codes in unsuback
-				err = writer.WritePacket(unsuback)
+				controlPackets <- unsuback
 			case mqtt.PINGREQ:
 				pingreq := packet.(*mqtt.PingreqPacket)
 				pingresp := pingreq.Pingresp()
-				err = writer.WritePacket(pingresp)
+				controlPackets <- pingresp
 			case mqtt.DISCONNECT:
 				disconnect := packet.(*mqtt.DisconnectPacket)
 				_ = disconnect.ReasonCode
